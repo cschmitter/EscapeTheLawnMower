@@ -1,0 +1,28 @@
+name:                EscapeTheLawnMower
+version:             0.1.0.0
+-- synopsis:
+-- description:
+homepage:            https://github.com/kinggemit/EscapeTheLawnMower#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Cameron Schmitter
+maintainer:
+copyright:           2020 Cameron Schmitter
+category:            Game
+build-type:          Simple
+cabal-version:       >=1.10
+extra-source-files:  README.md
+
+executable EscapeTheLawnMower
+  hs-source-dirs:      src
+
+  main-is:             Main.hs
+
+  other-modules:       World
+                     , Rendering
+                     , Handling
+
+  default-language:    Haskell2010
+
+  build-depends:       base >= 4.7 && < 5
+                     , gloss
