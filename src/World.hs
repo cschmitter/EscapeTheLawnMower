@@ -12,11 +12,12 @@ data World = World { gameState :: State
                    , mouse :: Position
                    , terrain :: Terrain
                    , player :: Player
-                   , baddies :: Baddies}
+                   , baddies :: Baddies
+                   } deriving (Show, Eq)
 
-data State = Menu | Running | GameOver Victory
+data State = Menu | Running | GameOver Victory deriving (Show, Eq)
 
-data Victory = Victory | Defeat
+data Victory = Victory | Defeat deriving (Show, Eq)
 ----------------------------------------------
 -- Terrain
 ----------------------------------------------
@@ -24,13 +25,14 @@ type Terrain = [Block]
 
 data Block = Block { position :: Position
                    , size :: Size
-                   , blockType :: BlockType }
+                   , blockType :: BlockType
+                   } deriving (Show, Eq)
 
 data BlockType = Actor
                | Dirt
                | Spike
                | Water Direction
-               | Oil Direction
+               | Oil Direction deriving (Show, Eq)
 
 ----------------------------------------------
 -- Player
@@ -43,9 +45,10 @@ data Player = Player { playerBlock :: Block
                      , playerAcceleration :: Acceleration
                      , playerSprite :: PlayerSprite
                      , alive :: Bool
-                     , won :: Bool }
+                     , won :: Bool
+                     } deriving (Show, Eq)
 
-data PlayerSprite = Square
+data PlayerSprite = Square deriving (Show, Eq)
 
 ----------------------------------------------
 -- Baddies
@@ -56,15 +59,16 @@ type Baddies = [Baddie]
 data Baddie = Baddie { baddieBlock :: Block
                      , baddieVelocity :: Velocity 
                      , baddieAcceleration :: Acceleration
-                     , baddieSprite :: BaddieSprite}
+                     , baddieSprite :: BaddieSprite
+                     } deriving (Show, Eq)
 
-data BaddieSprite = Gumba
+data BaddieSprite = Gumba deriving (Show, Eq)
 
 ----------------------------------------------
 -- Common
 ----------------------------------------------
 
-data Direction = Upward | Downward | Left | Right
+data Direction = Upward | Downward | Leftward | Rightward deriving (Show, Eq)
 
 type Position = (Float, Float)
 
@@ -86,12 +90,13 @@ getY = snd
 
 collision :: Block -> Block -> Bool
 collision b1 b2 = xOverlap && yOverlap
-  where xOverlap = x1 <= x2 + w2 && x2 <= x1 + w1
-        yOverlap = y1 <= y2 + h2 && y2 <= y1 + h1
+  where xOverlap = x1 - w1 <= x2 + w2 && x2 - w2 <= x1 + w1
+        yOverlap = y1 - h1 <= y2 + h2 && y2 - h2 <= y1 + h1
         (x1, y1) = position b1
         (x2, y2) = position b2
-        (w1, h1) = size b1
-        (w2, h2) = size b2
+        (w1, h1) = halve $ size b1
+        (w2, h2) = halve $ size b2
+        halve (a, b) = (a/2, b/2)
 
 ----------------------------------------------
 -- Update World
@@ -100,7 +105,7 @@ collision b1 b2 = xOverlap && yOverlap
 updateWorld :: Float -> World -> World
 updateWorld dt w = w { gameState = gameStateTransform w
                      , t = dt
-                     , keys = keysTransform w
+                     -- , keys = keysTransform w
                      , terrain = terrainTransform w
                      , player = playerTransform w
                      , baddies = baddiesTransform w }
@@ -155,6 +160,7 @@ playerBlockTransform w = b { position = newPos }
   where b = playerBlock $ player w
         (vX, vY) = playerVelocity $ player w
         newPos = if any (collision b) (terrain w) then position b else changePos $ position b
+        
         -- newSize = undefined
         changePos (x, y) = (x + (vX * t w), y + (vY * t w))
         -- changeSize = undefined
@@ -219,10 +225,10 @@ initialWorld = World { gameState = Running
                      , player = Player { playerBlock = Block { position = (0, 50)
                                                              , size = (50, 50)
                                                              , blockType = Actor}
-                                       , playerSpeed = 5
-                                       , playerJump = 3
+                                       , playerSpeed = 50
+                                       , playerJump = 1000
                                        , playerVelocity = (0, 0)
-                                       , playerAcceleration = (0, -9.8)
+                                       , playerAcceleration = (0, -9.8 * 5)
                                        , playerSprite = Square
                                        , alive = True
                                        , won = False }
