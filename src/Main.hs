@@ -17,13 +17,19 @@ main = play
        updateWorld       --- World
 
 myWindow :: Display
-myWindow = InWindow "Escape the Mower" (windowWidth, windowHeight) (250, 200)
+myWindow = InWindow
+           "Escape the Mower"            ---  Title
+           (windowWidth, windowHeight)   ---  Size
+           (250, 200)                    ---  Position
 
+windowWidth :: Int
 windowWidth = 640 * 3 `div` 2
+
+windowHeight :: Int
 windowHeight = 480 * 3 `div` 2
 
 backgroundColor :: Color
-backgroundColor = makeColorI 46 52 64 255
+backgroundColor = colorSky
 
 fps :: Int
 fps = 60
