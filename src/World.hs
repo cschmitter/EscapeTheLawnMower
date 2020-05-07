@@ -1,6 +1,6 @@
 module World where
 
-import Graphics.Gloss.Interface.Pure.Game
+import Graphics.Gloss.Interface.IO.Game
 import qualified Data.Set as S
 
 ----------------------------------------------
