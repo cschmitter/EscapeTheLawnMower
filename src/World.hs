@@ -1,14 +1,12 @@
 module World where
 
 import Graphics.Gloss.Interface.IO.Game
-import qualified Data.Set as S
 
 ----------------------------------------------
 -- World
 ----------------------------------------------
 data World = World { gameState :: State
                    , t :: Float
-                   , keys :: S.Set Key
                    , mouse :: Position
                    , terrain :: Terrain
                    , player :: Player
@@ -50,6 +48,8 @@ data Player = Player { playerBlock :: Block
 
 data PlayerSprite = Square deriving (Show, Eq)
 
+data Action = GoLeft | GoRight | GoJump | GoFlip deriving (Show, Eq)
+
 ----------------------------------------------
 -- Baddies
 ----------------------------------------------
@@ -84,14 +84,44 @@ getX = fst
 getY :: (a, b) -> b
 getY = snd
 
+addV :: (Num a) => (a, a) -> (a, a) -> (a, a)
+addV (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
+
+diffV :: (Num a) => (a, a) -> (a, a) -> (a, a)
+diffV (x1, y1) (x2, y2) = (x1 - x2, y1 - y2)
+
+dotProduct :: (Num a) => [(a, a)] -> a
+dotProduct [] = 0
+dotProduct vs = (product $ map getX vs) + (product $ map getY vs)
+
 ----------------------------------------------
 -- Physics
 ----------------------------------------------
 
-collision :: Block -> Block -> Bool
-collision b1 b2 = xOverlap && yOverlap
-  where xOverlap = x1 - w1 <= x2 + w2 && x2 - w2 <= x1 + w1
-        yOverlap = y1 - h1 <= y2 + h2 && y2 - h2 <= y1 + h1
+isCollision :: Block -> Block -> Bool
+isCollision b1 b2 = if (collision b1 b2) /= Nothing then True else False
+
+collision :: Block -> Block -> Maybe Direction
+collision b1 b2
+  | smallUp = Just Upward
+  | smallDown = Just Downward
+  | smallLeft = Just Leftward
+  | smallRight = Just Rightward
+  | otherwise = Nothing
+  where smallUp    = col && 2 > abs (up1    - down2 )
+        smallDown  = col && 2 > abs (down1  - up2   )
+        smallLeft  = col && 2 > abs (left1  - right2)
+        smallRight = col && 2 > abs (right1 - left2 )
+        col = xOverlap && yOverlap
+
+        xOverlap = left1 <= right2 && left2 <= right1
+        yOverlap = down1 <= up2    && down2 <= up1
+        
+        (up1, up2)       = (y1 + h1, y2 + h2)
+        (down1, down2)   = (y1 - h1, y2 - h2)
+        (left1, left2)   = (x1 - w1, x2 - w2)
+        (right1, right2) = (x1 + w1, x2 + w2)
+        
         (x1, y1) = position b1
         (x2, y2) = position b2
         (w1, h1) = halve $ size b1
@@ -105,7 +135,6 @@ collision b1 b2 = xOverlap && yOverlap
 updateWorld :: Float -> World -> World
 updateWorld dt w = w { gameState = gameStateTransform w
                      , t = dt
-                     -- , keys = keysTransform w
                      , terrain = terrainTransform w
                      , player = playerTransform w
                      , baddies = baddiesTransform w }
@@ -127,13 +156,6 @@ gameStateTransform w = case (gameState w) of
                          GameOver v -> GameOver v
                          
 ----------------------------------------------
--- Keys Transform
-----------------------------------------------
-keysTransform :: World -> S.Set Key
-keysTransform w = S.difference (keys w) pressOnly
-  where pressOnly = S.fromList [Char 'k', Char 'w', SpecialKey KeyUp, SpecialKey KeySpace]
-
-----------------------------------------------
 -- Terrain Transform
 ----------------------------------------------
 
@@ -149,21 +171,18 @@ playerTransform w = (player w) { playerBlock = playerBlockTransform w
                                -- , playerSpeed = playerSpeedTransform w
                                -- , playerJump = playerJumpTransform w
                                , playerVelocity = playerVelocityTransform w
-                               , playerAcceleration = playerAccelerationTransform w }
+                               -- , playerAcceleration = playerAccelerationTransform w
                                -- , playerSprite = playerSpriteTransform w
                                -- , alive = aliveTransform w
-                               -- , won = wonTransform w }
+                               -- , won = wonTransform w
+                               }
   
 playerBlockTransform :: World -> Block
-playerBlockTransform w = b { position = newPos }
-                            -- , size = newSize }
+playerBlockTransform w = b { position = changePos (position b)}
   where b = playerBlock $ player w
+        dt = t w
         (vX, vY) = playerVelocity $ player w
-        newPos = if any (collision b) (terrain w) then position b else changePos $ position b
-        
-        -- newSize = undefined
-        changePos (x, y) = (x + (vX * t w), y + (vY * t w))
-        -- changeSize = undefined
+        changePos (x, y) = (x + (vX * dt), y + (vY * dt))
 
 -- playerSpeedTransform :: World -> Float
 -- playerSpeedTransform w = undefined
@@ -174,25 +193,33 @@ playerBlockTransform w = b { position = newPos }
 playerVelocityTransform :: World -> Velocity
 playerVelocityTransform w = (vX, vY)
   where p = player w
+        b = playerBlock p
+        (oldvX, oldvY) = playerVelocity p
+        (accelX, accelY) = playerAcceleration p
+        dt = t w
+        collisions = map (collision b) (terrain w)
+        
         vX
-          | goLeft && not goRight = -playerSpeed p
-          | not goLeft && goRight = playerSpeed p
-          | otherwise             = 0
-        vY = jump + (getY $ playerAcceleration p)
-        jump
-          | goJump    = playerJump p
-          | otherwise = 0
-        goLeft  = any (`S.member` keys w) [Char 'h', Char 'a', SpecialKey KeyLeft]
-        goRight = any (`S.member` keys w) [Char 'l', Char 'd', SpecialKey KeyRight]
-        goJump  = any (`S.member` keys w) [Char 'k', Char 'w', SpecialKey KeyUp, SpecialKey KeySpace]
+          -- | goingLeft  && stopLeft  = 0
+          -- | goingRight && stopRight = 0
+          | otherwise = oldvX + (accelX * dt)
+        vY
+          -- | goingDown  && stopDown  = 0
+          -- | goingUp    && stopUp    = 0
+          | otherwise = oldvY + (accelY * dt)
 
-playerAccelerationTransform :: World -> Acceleration
-playerAccelerationTransform w = (0, aY)
-  where p = player w
-        aY
-          | switchGravity = -(getY $ playerAcceleration p)
-          | otherwise     = getY $ playerAcceleration p
-        switchGravity = any (`S.member` keys w) [Char 'f']
+        goingDown  = vY < 0
+        goingUp    = vY > 0
+        goingLeft  = vX < 0
+        goingRight = vX > 0
+
+        stopDown = elem (Just Downward) collisions
+        stopUp = elem (Just Upward) collisions
+        stopLeft = elem (Just Leftward) collisions
+        stopRight = elem (Just Rightward) collisions
+        
+-- playerAccelerationTransform :: World -> Acceleration
+-- playerAccelerationTransform w = undefined
 
 -- playerSpriteTransform :: World -> PlayerSprite
 -- playerSpriteTransform w = undefined
@@ -217,7 +244,6 @@ baddiesTransform w = baddies w
 initialWorld :: World
 initialWorld = World { gameState = Running
                      , t = 0
-                     , keys = S.empty
                      , mouse = (0,0)
                      , terrain = [Block { position = (-100, -50)
                                         , size = (200, 50)
@@ -226,9 +252,9 @@ initialWorld = World { gameState = Running
                                                              , size = (50, 50)
                                                              , blockType = Actor}
                                        , playerSpeed = 50
-                                       , playerJump = 1000
+                                       , playerJump = 100
                                        , playerVelocity = (0, 0)
-                                       , playerAcceleration = (0, -9.8 * 5)
+                                       , playerAcceleration = (0, -50)
                                        , playerSprite = Square
                                        , alive = True
                                        , won = False }
