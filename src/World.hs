@@ -212,9 +212,9 @@ playerBlockTransform w = b { position = (x, y) }
         x = oldX + (vX * dt) - offsetLeft - offsetRight
         y = oldY + (vY * dt) - offsetDown - offsetUp
   
-        offsetDown = offset Downward
-        offsetUp = offset Upward
-        offsetLeft = offset Leftward
+        offsetDown  = offset Downward
+        offsetUp    = offset Upward
+        offsetLeft  = offset Leftward
         offsetRight = offset Rightward
 
 -- playerSpeedTransform :: World -> Float
