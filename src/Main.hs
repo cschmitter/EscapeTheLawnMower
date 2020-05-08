@@ -32,4 +32,4 @@ backgroundColor :: Color
 backgroundColor = colorSky
 
 fps :: Int
-fps = 60
+fps = 120
