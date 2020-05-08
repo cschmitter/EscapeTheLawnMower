@@ -1,10 +1,9 @@
 module World where
 
-import Graphics.Gloss.Interface.IO.Game
-
 ----------------------------------------------
 -- World
 ----------------------------------------------
+
 data World = World { gameState :: State
                    , t :: Float
                    , mouse :: Position
@@ -16,9 +15,11 @@ data World = World { gameState :: State
 data State = Menu | Running | GameOver Victory deriving (Show, Eq)
 
 data Victory = Victory | Defeat deriving (Show, Eq)
+
 ----------------------------------------------
 -- Terrain
 ----------------------------------------------
+
 type Terrain = [Block]
 
 data Block = Block { position :: Position
@@ -101,18 +102,24 @@ dotProduct vs = (product $ map getX vs) + (product $ map getY vs)
 isCollision :: Block -> Block -> Bool
 isCollision b1 b2 = if (collision b1 b2) /= Nothing then True else False
 
-collision :: Block -> Block -> Maybe Direction
+collision :: Block -> Block -> Maybe (Direction, Float)
 collision b1 b2
-  | smallUp = Just Upward
-  | smallDown = Just Downward
-  | smallLeft = Just Leftward
-  | smallRight = Just Rightward
+  | not col = Nothing
+  | smallUp = Just (Upward, upGap)
+  | smallDown = Just (Downward, downGap)
+  | smallLeft = Just (Leftward, leftGap)
+  | smallRight = Just (Rightward, rightGap)
   | otherwise = Nothing
-  where smallUp    = col && 2 > abs (up1    - down2 )
-        smallDown  = col && 2 > abs (down1  - up2   )
-        smallLeft  = col && 2 > abs (left1  - right2)
-        smallRight = col && 2 > abs (right1 - left2 )
+  where smallUp    = col && 5 > abs upGap
+        smallDown  = col && 5 > abs downGap
+        smallLeft  = col && 5 > abs leftGap
+        smallRight = col && 5 > abs rightGap
         col = xOverlap && yOverlap
+
+        upGap =    (up1    - down2 )
+        downGap =  (down1  - up2   ) 
+        leftGap =  (left1  - right2)  
+        rightGap = (right1 - left2 )   
 
         xOverlap = left1 <= right2 && left2 <= right1
         yOverlap = down1 <= up2    && down2 <= up1
@@ -178,11 +185,32 @@ playerTransform w = (player w) { playerBlock = playerBlockTransform w
                                }
   
 playerBlockTransform :: World -> Block
-playerBlockTransform w = b { position = changePos (position b)}
+playerBlockTransform w = b { position = (x, y) }
   where b = playerBlock $ player w
         dt = t w
+        (oldX, oldY) = position b
         (vX, vY) = playerVelocity $ player w
-        changePos (x, y) = (x + (vX * dt), y + (vY * dt))
+        collisions = map (\(Just a) -> a)
+                     $ filter (/= Nothing)
+                     $ map (collision b) (terrain w)
+  
+        offset d = headOrZero $ filter (/= 0) $ map (testCollision d) collisions
+        
+        testCollision testd (reald, _offset)
+          | testd == reald = _offset
+          | otherwise = 0
+          
+        headOrZero xs
+          | xs == [] = 0
+          | otherwise = head xs
+                     
+        x = oldX + (vX * dt) - offsetLeft - offsetRight
+        y = oldY + (vY * dt) - offsetDown - offsetUp
+  
+        offsetDown = offset Downward
+        offsetUp = offset Upward
+        offsetLeft = offset Leftward
+        offsetRight = offset Rightward
 
 -- playerSpeedTransform :: World -> Float
 -- playerSpeedTransform w = undefined
@@ -197,26 +225,29 @@ playerVelocityTransform w = (vX, vY)
         (oldvX, oldvY) = playerVelocity p
         (accelX, accelY) = playerAcceleration p
         dt = t w
-        collisions = map (collision b) (terrain w)
+        collisions = map fst
+                     $ map (\(Just a) -> a)
+                     $ filter (/= Nothing)
+                     $ map (collision b) (terrain w)
         
         vX
-          -- | goingLeft  && stopLeft  = 0
-          -- | goingRight && stopRight = 0
+          | goingLeft  && stopLeft  = 0
+          | goingRight && stopRight = 0
           | otherwise = oldvX + (accelX * dt)
         vY
-          -- | goingDown  && stopDown  = 0
-          -- | goingUp    && stopUp    = 0
+          | goingDown  && stopDown  = 0
+          | goingUp    && stopUp    = 0
           | otherwise = oldvY + (accelY * dt)
 
-        goingDown  = vY < 0
-        goingUp    = vY > 0
-        goingLeft  = vX < 0
-        goingRight = vX > 0
+        goingDown  = oldvY < 0
+        goingUp    = oldvY > 0
+        goingLeft  = oldvX < 0
+        goingRight = oldvX > 0
 
-        stopDown = elem (Just Downward) collisions
-        stopUp = elem (Just Upward) collisions
-        stopLeft = elem (Just Leftward) collisions
-        stopRight = elem (Just Rightward) collisions
+        stopDown = elem Downward collisions
+        stopUp = elem Upward collisions
+        stopLeft = elem Leftward collisions
+        stopRight = elem Rightward collisions
         
 -- playerAccelerationTransform :: World -> Acceleration
 -- playerAccelerationTransform w = undefined
@@ -252,9 +283,9 @@ initialWorld = World { gameState = Running
                                                              , size = (50, 50)
                                                              , blockType = Actor}
                                        , playerSpeed = 50
-                                       , playerJump = 100
+                                       , playerJump = 200
                                        , playerVelocity = (0, 0)
-                                       , playerAcceleration = (0, -50)
+                                       , playerAcceleration = (0, -100)
                                        , playerSprite = Square
                                        , alive = True
                                        , won = False }
