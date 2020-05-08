@@ -294,10 +294,10 @@ initialWorld = World { gameState = Running
                      , player = Player { playerBlock = Block { position = (0, 50)
                                                              , size = (50, 50)
                                                              , blockType = Actor}
-                                       , playerSpeed = 50
-                                       , playerJump = 200
+                                       , playerSpeed = 100
+                                       , playerJump = 300
                                        , playerVelocity = (0, 0)
-                                       , playerAcceleration = (0, -200)
+                                       , playerAcceleration = (0, -300)
                                        , playerSprite = Square
                                        , alive = True
                                        , won = False }
