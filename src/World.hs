@@ -140,6 +140,12 @@ collision b1 b2
         (w2, h2) = halve $ size b2
         halve (a, b) = (a/2, b/2)
 
+playerTerrainCollisions :: World -> [(Direction, Float)]
+playerTerrainCollisions w = map (\(Just a) -> a)
+                          $ filter (/= Nothing)
+                          $ map (collision b) (terrain w)
+  where b = playerBlock $ player w
+
 ----------------------------------------------
 -- Update World
 ----------------------------------------------
@@ -195,11 +201,11 @@ playerBlockTransform w = b { position = (x, y) }
         dt = t w
         (oldX, oldY) = position b
         (vX, vY) = playerVelocity $ player w
-        collisions = map (\(Just a) -> a)
-                     $ filter (/= Nothing)
-                     $ map (collision b) (terrain w)
   
-        offset d = headOrZero $ filter (/= 0) $ map (testCollision d) collisions
+        offset d = headOrZero
+                   $ filter (/= 0)
+                   $ map (testCollision d)
+                   $ playerTerrainCollisions w
         
         testCollision testd (reald, _offset)
           | testd == reald = _offset
@@ -230,10 +236,7 @@ playerVelocityTransform w = (vX, vY)
         (oldvX, oldvY) = playerVelocity p
         (accelX, accelY) = playerAcceleration p
         dt = t w
-        collisions = map fst
-                     $ map (\(Just a) -> a)
-                     $ filter (/= Nothing)
-                     $ map (collision b) (terrain w)
+        collisions = map fst $ playerTerrainCollisions w
         
         vX
           | goingLeft  && stopLeft  = 0
