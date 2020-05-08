@@ -1,5 +1,5 @@
 name:                EscapeTheLawnMower
-version:             0.1.0.0
+version:             0.2
 -- synopsis:
 -- description:
 homepage:            https://github.com/kinggemit/EscapeTheLawnMower#readme
@@ -26,4 +26,3 @@ executable EscapeTheLawnMower
 
   build-depends:       base >= 4.7 && < 5
                      , gloss
-                     , containers
