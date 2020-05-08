@@ -276,16 +276,23 @@ initialWorld :: World
 initialWorld = World { gameState = Running
                      , t = 0
                      , mouse = (0,0)
-                     , terrain = [Block { position = (-100, -50)
-                                        , size = (200, 50)
-                                        , blockType = Dirt}]
+                     , terrain = [ Block { position = (-100, -50)
+                                         , size = (200, 20)
+                                         , blockType = Dirt}
+                                 , Block { position = (100, 100)
+                                         , size = (300, 20)
+                                         , blockType = Dirt}
+                                 , Block { position = (0, -150)
+                                         , size = (500, 20)
+                                         , blockType = Dirt}
+                                 ]
                      , player = Player { playerBlock = Block { position = (0, 50)
                                                              , size = (50, 50)
                                                              , blockType = Actor}
                                        , playerSpeed = 50
                                        , playerJump = 200
                                        , playerVelocity = (0, 0)
-                                       , playerAcceleration = (0, -100)
+                                       , playerAcceleration = (0, -200)
                                        , playerSprite = Square
                                        , alive = True
                                        , won = False }
