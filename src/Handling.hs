@@ -12,8 +12,8 @@ handleInput (EventKey k Down _ _) w
   | elem k keyGoFlip = playerDo GoFlip w
   
 handleInput (EventKey k Up _ _) w
-  | elem k keyGoLeft = playerDo GoRight w
-  | elem k keyGoRight = playerDo GoLeft w
+  | elem k keyGoLeft = playerDo GoStop w
+  | elem k keyGoRight = playerDo GoStop w
 
 handleInput (EventMotion pos) w = w {mouse = pos}
 
@@ -46,14 +46,20 @@ playerDo action w = w { player = newPlayer }
         (oldaX, oldaY) = playerAcceleration p
         
         newPlayer
-          | elem action [GoLeft, GoRight, GoJump] = p { playerVelocity = newVelocity }
-          | action == GoFlip                      = p { playerAcceleration = newAccel }
-          | otherwise                             = p
+          | elem action [ GoStop, GoLeft, GoRight, GoJump]
+                             = p { playerVelocity = newVelocity }
+          | action == GoFlip = p { playerJump = newJump
+                                 , playerAcceleration = newAccel }
+          | otherwise        = p
           
-        newVelocity = case action of GoLeft -> (oldvX - playerSpeed p, oldvY)
+        newVelocity = case action of GoStop -> (0, oldvY)
+                                     GoLeft -> (oldvX - playerSpeed p, oldvY)
                                      GoRight -> (oldvX + (playerSpeed p), oldvY)
                                      GoJump -> (oldvX, playerJump p)
                                      _otherwise -> playerVelocity p
 
         newAccel = case action of GoFlip -> (oldaX, -oldaY)
                                   _otherwise -> playerAcceleration p
+
+        newJump = case action of GoFlip -> -(playerJump p)
+                                 _otherwise -> playerJump p
