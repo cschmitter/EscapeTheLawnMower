@@ -48,31 +48,16 @@ colorSky = makeColorI 123 179 184 255
 -- debug info
 ---------------------------------------------
 debugInfo :: World -> Picture
-debugInfo w = Pictures [playerInfo w, terrainInfo w]
+debugInfo w = Pictures [playerInfo w]
 
 playerInfo :: World -> Picture
-playerInfo w = Translate (-400) 300
+playerInfo w = Translate (-450) 330
                $ Scale 0.1 0.1
-               $ Text str
-  where str = "Player = " ++
-              pos ++
-              siz ++
-              vel ++
-              acc
+               $ Pictures
+               $ [str, pos, siz, vel, acc]
+  where str = Text "Player = "
         p = player w
-        pos = "Position: " ++ (show $ position $ playerBlock p)
-        siz = "  Size: " ++ (show $ size $ playerBlock p)
-        vel = "  Velocity: " ++ (show $ playerVelocity p)
-        acc = "  Accel: " ++ (show $ playerAcceleration p)
-
-terrainInfo :: World -> Picture
-terrainInfo w = Translate (-400) 250 
-                $ Scale 0.1 0.1
-                $ Text str
-  where str = "FirstTerrain = " ++
-              pos ++
-              siz
-        (b:_) = terrain w
-        pos = "Position: " ++ (show $ position b)
-        siz = "  Size: " ++ (show $ size b)
-
+        pos = Translate 0 (0) $ Text $ "        Position: " ++ (show $ position $ playerBlock p)
+        siz = Translate 0 (-200) $ Text $ "        Size: " ++ (show $ size $ playerBlock p)
+        vel = Translate 0 (-400) $ Text $ "        Velocity: " ++ (show $ playerVelocity p)
+        acc = Translate 0 (-600) $ Text $ "        Accel: " ++ (show $ playerAcceleration p)
