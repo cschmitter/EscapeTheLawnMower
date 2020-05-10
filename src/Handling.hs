@@ -55,7 +55,8 @@ playerDo action w = w { player = newPlayer }
         newVelocity = case action of GoStop -> (0, oldvY)
                                      GoLeft -> (oldvX - playerSpeed p, oldvY)
                                      GoRight -> (oldvX + (playerSpeed p), oldvY)
-                                     GoJump -> if elem Downward (map fst $ playerTerrainCollisions w)
+                                     GoJump -> if (elem Downward (map fst $ playerTerrainCollisions w) && oldaY < 0)
+                                                  || (elem Upward (map fst $ playerTerrainCollisions w) && oldaY > 0)
                                                then (oldvX, playerJump p)
                                                else playerVelocity p
                                      _otherwise -> playerVelocity p
