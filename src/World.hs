@@ -53,9 +53,10 @@ data Player = Player { playerBlock :: Block
 
 data PlayerSprite = Square deriving (Show, Eq)
 
-data Action = GoStop
-            | GoLeft
+data Action = GoLeft
             | GoRight
+            | StopLeft
+            | StopRight
             | GoJump
             | GoFlip
             deriving (Show, Eq)

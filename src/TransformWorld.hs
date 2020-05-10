@@ -1,6 +1,7 @@
 module TransformWorld where
 
 import World
+import Handling
 
 import Graphics.Gloss.Interface.IO.Game
 import qualified Data.Set as S
@@ -44,15 +45,26 @@ terrainTransform w = terrain w
 ----------------------------------------------
 
 playerTransform :: World -> Player
-playerTransform w = (player w) { playerBlock = playerBlockTransform w
+playerTransform w = (player w') { playerBlock = playerBlockTransform w'
                                -- , playerSpeed = playerSpeedTransform w
                                -- , playerJump = playerJumpTransform w
-                               , playerVelocity = playerVelocityTransform w
+                               , playerVelocity = playerVelocityTransform w'
                                -- , playerAcceleration = playerAccelerationTransform w
                                -- , playerSprite = playerSpriteTransform w
                                -- , alive = aliveTransform w
                                -- , won = wonTransform w
                                }
+  where w' = doAll process as w
+        as = [ (keyGoLeft,  GoLeft)
+             , (keyGoRight, GoRight)
+             , (keyGoJump,  GoJump) 
+             , (keyGoFlip,  GoFlip)
+             ]
+        process (ks, action) world
+          | isHeld ks world = playerDo action world
+          | otherwise = world
+        doAll _ [] world = world
+        doAll f (x:xs) world = doAll f xs (f x world)
   
 playerBlockTransform :: World -> Block
 playerBlockTransform w = b { position = (x, y) }
@@ -98,8 +110,10 @@ playerVelocityTransform w = (vX, vY)
         collisions = map fst $ playerTerrainCollisions w
         
         vX
-          | goingLeft  && stopLeft  = 0
+          | goingLeft && stopLeft   = 0
           | goingRight && stopRight = 0
+          | goingDown  && stopDown  = 0
+          | goingUp    && stopUp    = 0
           | otherwise = oldvX + (accelX * dt)
         vY
           | goingDown  && stopDown  = 0
@@ -136,26 +150,6 @@ baddiesTransform :: World -> Baddies
 baddiesTransform w = baddies w
 
 ---------------------------------------------
--- Key Definitions
----------------------------------------------
-
-keyGoLeft :: [Key]
-keyGoLeft = [Char 'h', Char 'a', SpecialKey KeyLeft]
-  
-keyGoRight :: [Key]
-keyGoRight = [Char 'l', Char 'd', SpecialKey KeyRight]
-  
-keyGoJump :: [Key]
-keyGoJump = [Char 'k', Char 'w', SpecialKey KeyUp, SpecialKey KeySpace]
-  
-keyGoFlip :: [Key]
-keyGoFlip = [Char 'f']
-
-isHeld :: [Key] -> World -> Bool
-isHeld ks w = any (`S.member` held) ks
-  where held = keys w
-
----------------------------------------------
 -- Key Actions
 ---------------------------------------------
 
@@ -166,19 +160,17 @@ playerDo action w = w { player = newPlayer }
         (oldaX, oldaY) = playerAcceleration p
         
         newPlayer
-          | elem action [GoStop, GoLeft, GoRight, GoJump]
+          | elem action [GoLeft, GoRight, GoJump, StopLeft, StopRight]
                              = p { playerVelocity = newVelocity }
           | action == GoFlip = p { playerJump = newJump
                                  , playerAcceleration = newAccel }
           | otherwise        = p
           
-        newVelocity = case action of GoStop -> goStop
-                                     GoLeft -> (oldvX - playerSpeed p, oldvY)
-                                     GoRight -> (oldvX + (playerSpeed p), oldvY)
-                                     GoJump -> if (elem Downward (map fst $ playerTerrainCollisions w) && oldaY < 0)
-                                                  || (elem Upward (map fst $ playerTerrainCollisions w) && oldaY > 0)
-                                               then (oldvX, playerJump p)
-                                               else playerVelocity p
+        newVelocity = case action of GoLeft -> (-(playerSpeed p), oldvY)
+                                     GoRight -> (playerSpeed p, oldvY)
+                                     GoJump -> goJump
+                                     StopLeft -> stopLeft
+                                     StopRight -> stopRight
                                      _otherwise -> playerVelocity p
 
         newAccel = case action of GoFlip -> (oldaX, -oldaY)
@@ -187,8 +179,16 @@ playerDo action w = w { player = newPlayer }
         newJump = case action of GoFlip -> -(playerJump p)
                                  _otherwise -> playerJump p
 
-        goStop
+        goJump = if (elem Downward (map fst $ playerTerrainCollisions w) && oldaY < 0)
+                    || (elem Upward (map fst $ playerTerrainCollisions w) && oldaY > 0)
+                 then (oldvX, playerJump p)
+                 else playerVelocity p
+
+        stopLeft
           | isHeld keyGoRight w = playerVelocity $ player $ playerDo GoRight w
+          | otherwise = (0, oldvY)
+        
+        stopRight
           | isHeld keyGoLeft w = playerVelocity $ player $ playerDo GoLeft w
           | otherwise = (0, oldvY)
 
