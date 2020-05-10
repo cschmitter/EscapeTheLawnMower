@@ -1,11 +1,15 @@
 module World where
 
+import Graphics.Gloss.Interface.IO.Game
+import qualified Data.Set as S
+
 ----------------------------------------------
 -- World
 ----------------------------------------------
 
 data World = World { gameState :: State
                    , t :: Float
+                   , keys :: S.Set Key
                    , mouse :: Position
                    , terrain :: Terrain
                    , player :: Player
@@ -283,6 +287,7 @@ baddiesTransform w = baddies w
 initialWorld :: World
 initialWorld = World { gameState = Running
                      , t = 0
+                     , keys = S.empty
                      , mouse = (0,0)
                      , terrain = [ Block { position = (-100, -50)
                                          , size = (200, 20)
