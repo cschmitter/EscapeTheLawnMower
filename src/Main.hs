@@ -3,6 +3,7 @@ module Main where
 import World
 import Rendering
 import Handling
+import TransformWorld
 
 import Graphics.Gloss
 

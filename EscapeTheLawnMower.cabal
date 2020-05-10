@@ -21,6 +21,7 @@ executable EscapeTheLawnMower
   other-modules:       World
                      , Rendering
                      , Handling
+                     , TransformWorld
 
   default-language:    Haskell2010
 
