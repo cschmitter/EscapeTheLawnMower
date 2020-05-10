@@ -14,5 +14,5 @@ $ git checkout develop
 
 ```console
 $ stack build
-$ stack exec functional
+$ stack exec EscapeTheLawnMower
 ```
