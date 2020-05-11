@@ -11,11 +11,22 @@ import qualified Data.Set as S
 ----------------------------------------------
 
 updateWorld :: Float -> World -> World
-updateWorld dt w = w { gameState = gameStateTransform w
+updateWorld dt w = w' { gameState = gameStateTransform w'
                      , t = dt
-                     , terrain = terrainTransform w
-                     , player = playerTransform w
-                     , baddies = baddiesTransform w }
+                     , terrain = terrainTransform w'
+                     , player = playerTransform w'
+                     , baddies = baddiesTransform w' }
+  where w' = doAll process actions w --process all key events
+        actions = [ (keyGoLeft,  GoLeft)
+                  , (keyGoRight, GoRight)
+                  , (keyGoJump,  GoJump) 
+                  , (keyGoFlip,  GoFlip)
+                  ]
+        process (ks, action) world
+          | isHeld ks world = playerDo action world
+          | otherwise = world
+        doAll _ [] world = world
+        doAll f (x:xs) world = doAll f xs (f x world)
 
 ----------------------------------------------
 -- Game State Transform
@@ -45,26 +56,15 @@ terrainTransform w = terrain w
 ----------------------------------------------
 
 playerTransform :: World -> Player
-playerTransform w = (player w') { playerBlock = playerBlockTransform w'
+playerTransform w = (player w) { playerBlock = playerBlockTransform w
                                -- , playerSpeed = playerSpeedTransform w
                                -- , playerJump = playerJumpTransform w
-                               , playerVelocity = playerVelocityTransform w'
+                               , playerVelocity = playerVelocityTransform w
                                -- , playerAcceleration = playerAccelerationTransform w
                                -- , playerSprite = playerSpriteTransform w
                                -- , alive = aliveTransform w
                                -- , won = wonTransform w
                                }
-  where w' = doAll process as w
-        as = [ (keyGoLeft,  GoLeft)
-             , (keyGoRight, GoRight)
-             , (keyGoJump,  GoJump) 
-             , (keyGoFlip,  GoFlip)
-             ]
-        process (ks, action) world
-          | isHeld ks world = playerDo action world
-          | otherwise = world
-        doAll _ [] world = world
-        doAll f (x:xs) world = doAll f xs (f x world)
   
 playerBlockTransform :: World -> Block
 playerBlockTransform w = b { position = (x, y) }
@@ -154,18 +154,25 @@ baddiesTransform w = baddies w
 ---------------------------------------------
 
 playerDo :: Action -> World -> World
-playerDo action w = w { player = newPlayer }
+playerDo action w = w { keys = newKeys
+                      , player = newPlayer }
   where p = player w
         (oldvX, oldvY) = playerVelocity p
         (oldaX, oldaY) = playerAcceleration p
-        
+
+        newKeys
+          | action == GoFlip = doAll S.delete keyGoFlip (keys w)
+          | otherwise = keys w
+          where doAll _ [] s = s
+                doAll f (x:xs) s = doAll f xs (f x s)
+
         newPlayer
           | elem action [GoLeft, GoRight, GoJump, StopLeft, StopRight]
                              = p { playerVelocity = newVelocity }
           | action == GoFlip = p { playerJump = newJump
                                  , playerAcceleration = newAccel }
           | otherwise        = p
-          
+
         newVelocity = case action of GoLeft -> (-(playerSpeed p), oldvY)
                                      GoRight -> (playerSpeed p, oldvY)
                                      GoJump -> goJump
